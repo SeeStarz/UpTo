@@ -7,3 +7,4 @@ edition = "2024"
 axum = "0.8.9"
 common = { version = "0.1.0", path = "../common" }
 tokio = { version = "1.53.1", features = ["full"] }
+tower-http = { version = "0.7.0", features = ["cors"] }

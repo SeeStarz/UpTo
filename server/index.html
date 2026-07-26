@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<!-- GPT made most of this so don't bother -->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Up To</title>
+
+    <style>
+        :root {
+            --bg: #0f1117;
+            --card: #181b23;
+            --card-hover: #202530;
+            --text: #e6e6e6;
+            --muted: #9299a8;
+            --accent: #7dd3fc;
+            --border: #2a2f3a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family:
+                Inter,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: min(800px, 100%);
+        }
+
+        header {
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            letter-spacing: -0.03em;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        .status {
+            margin-bottom: 20px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .facts {
+            display: grid;
+            gap: 16px;
+        }
+
+        .fact {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+
+            transition:
+                background 0.15s,
+                transform 0.15s;
+        }
+
+        .fact:hover {
+            background: var(--card-hover);
+            transform: translateY(-2px);
+        }
+
+        .fact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .observer {
+            color: var(--accent);
+            font-size: 0.85rem;
+        }
+
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .meta {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 10px 12px;
+            border-radius: 10px;
+        }
+
+        .meta-key {
+            color: var(--muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            word-break: break-word;
+        }
+
+        .empty {
+            color: var(--muted);
+            text-align: center;
+            padding: 60px 20px;
+            border: 1px dashed var(--border);
+            border-radius: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <header>
+            <h1>🟢 Up To</h1>
+            <div class="subtitle">
+                Current activity presence
+            </div>
+        </header>
+
+        <div class="status" id="status">
+            Connecting...
+        </div>
+
+        <div class="facts" id="facts">
+        </div>
+
+    </div>
+
+    <script>
+        async function update() {
+            const status = document.getElementById("status");
+            const facts = document.getElementById("facts");
+
+            try {
+                const response = await fetch("http://localhost:8000/api");
+                const snapshot = await response.json();
+
+                status.textContent =
+                    "Last updated " + new Date().toLocaleTimeString();
+
+                facts.innerHTML = "";
+
+                if (!snapshot || snapshot.facts.length === 0) {
+                    facts.innerHTML = `
+                <div class="empty">
+                    Nothing happening right now.
+                </div>
+            `;
+                    return;
+                }
+
+                for (const fact of snapshot.facts) {
+                    const card = document.createElement("div");
+                    card.className = "fact";
+
+                    let metadata = "";
+
+                    for (const [key, value] of Object.entries(fact.metadata)) {
+                        metadata += `
+                    <div class="meta">
+                        <div class="meta-key">${escapeHtml(key)}</div>
+                        <div class="meta-value">${escapeHtml(value)}</div>
+                    </div>
+                `;
+                    }
+
+                    card.innerHTML = `
+                <div class="fact-header">
+                    <div class="title">
+                        ${escapeHtml(fact.observation_title)}
+                    </div>
+
+                    <div class="observer">
+                        ${escapeHtml(fact.observer_name)}
+                    </div>
+                </div>
+
+                ${metadata
+                            ? `<div class="metadata">${metadata}</div>`
+                            : ""
+                        }
+            `;
+
+                    facts.appendChild(card);
+                }
+
+            } catch (e) {
+                status.textContent = "Disconnected";
+                console.error(e);
+            }
+        }
+
+
+        function escapeHtml(text) {
+            return String(text)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+
+        update();
+        setInterval(update, 1000);
+    </script>
+
+</body>
+
+</html>
