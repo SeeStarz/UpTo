@@ -7,3 +7,8 @@ pub struct Fact {
     pub observation_title: String,
     pub metadata: HashMap<String, String>,
 }
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct Snapshot {
+    pub facts: Vec<Fact>,
+}
