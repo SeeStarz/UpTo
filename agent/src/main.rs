@@ -4,20 +4,43 @@ use std::{
     eprintln,
     net::TcpListener,
     println,
+    sync::mpsc,
     thread::{self, sleep},
     time::Duration,
 };
 
 fn main() {
-    let _cli_server = thread::spawn(cli_handler);
+    let (tx, rx) = mpsc::channel();
+
+    let _cli_server = thread::spawn(move || cli_handler(tx));
+
+    let mut facts = HashMap::new();
 
     loop {
-        let fact = Fact {
-            metadata: HashMap::new(),
-            observer_name: String::from("Manual"),
-            observation_title: String::from("working on upto"),
+        for agent_fact_command in rx.try_iter() {
+            use AgentFactCommand::*;
+            match agent_fact_command {
+                Begin { title, metadata } => {
+                    facts.insert(
+                        title.clone(),
+                        Fact {
+                            observer_name: String::from("Manual"),
+                            observation_title: title,
+                            metadata: metadata,
+                        },
+                    );
+                }
+                End { title } => {
+                    facts.remove(&title);
+                }
+                EndAll => {
+                    facts.drain();
+                }
+            }
+        }
+        let snapshot = Snapshot {
+            facts: facts.clone().into_values().collect(),
         };
-        let snapshot = Snapshot { facts: vec![fact] };
         let client = reqwest::blocking::Client::new();
         if let Err(err) = client
             .post("http://localhost:8000/api")
@@ -32,17 +55,22 @@ fn main() {
     }
 }
 
-fn cli_handler() {
+fn cli_handler(sender: mpsc::Sender<AgentFactCommand>) {
     let listener = TcpListener::bind("localhost:7000").expect("Failed to bind");
     loop {
-        if let Ok((stream, _addr)) = listener.accept() {
-            if let Ok(data) = deserialize_wire_json::<AgentFactCommand, _>(stream) {
-                println!("{:?}", data);
-            } else {
-                eprintln!("Failed to deserialize incoming data");
-            }
-        } else {
+        let Ok((stream, _addr)) = listener.accept() else {
             eprintln!("Failed to accept connection request");
-        }
+            continue;
+        };
+
+        let Ok(data) = deserialize_wire_json::<AgentFactCommand, _>(stream) else {
+            eprintln!("Failed to deserialize incoming data");
+            continue;
+        };
+
+        let Ok(_) = sender.send(data) else {
+            eprintln!("Failed to send data to channel");
+            continue;
+        };
     }
 }
