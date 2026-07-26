@@ -1,2 +1,2 @@
 server: target/debug/server
-client: target/debug/client
+agent: target/debug/agent
