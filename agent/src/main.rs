@@ -1,7 +1,8 @@
 use common::{AgentFactCommand, Fact, Snapshot, deserialize_wire_json};
+use reqwest::header;
 use std::{
     collections::HashMap,
-    eprintln, fs, io,
+    env, eprintln, fs, io,
     net::TcpListener,
     println,
     sync::{Arc, Mutex, mpsc},
@@ -31,6 +32,8 @@ fn main() {
             eprintln!("Failed to deserialize cached facts, starting anew");
         }
     }
+
+    let admin_token = env::var("ADMIN_TOKEN").unwrap_or(String::from("admin_btw"));
 
     loop {
         if *shutdown_requested.lock().expect("Failed to acquire lock") {
@@ -71,14 +74,23 @@ fn main() {
         .expect("Failed to write state file");
 
         let client = reqwest::blocking::Client::new();
-        if let Err(err) = client
+        match client
             .post("http://localhost:8000/api")
+            .header(header::AUTHORIZATION, format!("Custom {}", admin_token))
             .json(&snapshot)
             .send()
         {
-            println!("{:?}", err);
-        } else {
-            println!("Okie");
+            Err(err) => {
+                eprintln!("Failed to send request {:?}", err);
+            }
+            Ok(response) => match response.error_for_status() {
+                Ok(_response) => {
+                    println!("Sent!")
+                }
+                Err(err) => {
+                    eprintln!("Request failed {:?}", err);
+                }
+            },
         }
         sleep(Duration::from_millis(1000));
     }
