@@ -1,7 +1,7 @@
 use common::{AgentFactCommand, Fact, Snapshot, deserialize_wire_json};
 use std::{
     collections::HashMap,
-    eprintln,
+    eprintln, fs,
     net::TcpListener,
     println,
     sync::mpsc,
@@ -15,6 +15,14 @@ fn main() {
     let _cli_server = thread::spawn(move || cli_handler(tx));
 
     let mut facts = HashMap::new();
+
+    if let Ok(data) = fs::read(dirs::state_dir().unwrap().join("upto/cache.json")) {
+        if let Ok(cached_facts) = serde_json::from_slice(&data) {
+            facts = cached_facts;
+        } else {
+            eprintln!("Failed to deserialize cached facts");
+        }
+    }
 
     loop {
         for agent_fact_command in rx.try_iter() {
@@ -41,6 +49,15 @@ fn main() {
         let snapshot = Snapshot {
             facts: facts.clone().into_values().collect(),
         };
+
+        fs::create_dir_all(dirs::state_dir().unwrap().join("upto"))
+            .expect("Failed to create state directory");
+        fs::write(
+            dirs::state_dir().unwrap().join("upto/cache.json"),
+            &serde_json::to_vec(&facts).expect("Failed to serialize facts"),
+        )
+        .expect("Failed to write state file");
+
         let client = reqwest::blocking::Client::new();
         if let Err(err) = client
             .post("http://localhost:8000/api")
