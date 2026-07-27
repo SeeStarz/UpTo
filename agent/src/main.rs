@@ -113,7 +113,7 @@ fn cli_handler(
             break;
         }
 
-        let stream = match listener.accept() {
+        let mut stream = match listener.accept() {
             Ok((stream, _addr)) => stream,
             Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                 continue;
@@ -124,7 +124,7 @@ fn cli_handler(
             }
         };
 
-        let Ok(data) = deserialize_wire_json::<AgentFactCommand, _>(stream) else {
+        let Ok(data) = deserialize_wire_json::<AgentFactCommand, _>(&mut stream) else {
             eprintln!("Failed to deserialize incoming data");
             continue;
         };

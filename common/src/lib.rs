@@ -28,7 +28,7 @@ pub enum AgentFactCommand {
     EndAll,
 }
 
-pub fn serialize_wire_json<W, T>(mut writer: W, data: T) -> io::Result<()>
+pub fn serialize_wire_json<W, T>(writer: &mut W, data: T) -> io::Result<()>
 where
     W: Write,
     T: Serialize,
@@ -39,7 +39,7 @@ where
     io::Result::Ok(())
 }
 
-pub fn deserialize_wire_json<T, R>(mut reader: R) -> io::Result<T>
+pub fn deserialize_wire_json<T, R>(reader: &mut R) -> io::Result<T>
 where
     T: DeserializeOwned,
     R: Read,
