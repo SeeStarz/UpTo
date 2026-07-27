@@ -301,6 +301,7 @@ dependencies = [
  "clap",
  "common",
  "reqwest",
+ "serde_json",
 ]
 
 [[package]]
