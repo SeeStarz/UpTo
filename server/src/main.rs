@@ -8,7 +8,7 @@ use axum::{
     routing::{get, post},
 };
 use common::Snapshot;
-use std::{env, println, sync::Arc};
+use std::{env, eprintln, println, sync::Arc};
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
 
@@ -37,6 +37,15 @@ impl AppState {
 #[tokio::main]
 async fn main() {
     let state: AppStateShared = Arc::new(Mutex::new(AppState::new()));
+    {
+        let unlocked = state.lock().await;
+        println!(
+            "Token setup:\nUSER_TOKEN: {}\nADMIN_TOKEN: {}",
+            unlocked.user_token, unlocked.admin_token,
+        );
+    }
+
+    println!("Server starting!");
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
@@ -67,6 +76,7 @@ async fn post_api(
     };
 
     if token != state.lock().await.admin_token {
+        eprintln!("Attempted invalid token: {}", token);
         return Err(StatusCode::FORBIDDEN);
     }
 
@@ -85,6 +95,7 @@ async fn get_api(
     };
 
     if token != state.lock().await.admin_token && token != state.lock().await.user_token {
+        eprintln!("Attempted invalid token: {}", token);
         return Err(StatusCode::FORBIDDEN);
     }
 

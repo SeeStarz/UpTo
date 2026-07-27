@@ -59,6 +59,44 @@
             color: var(--muted);
         }
 
+        .server {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px;
+            margin: 0 0 28px 0;
+        }
+
+        .server label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--muted);
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .server input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 1rem;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .server input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .server input::placeholder {
+            color: var(--muted);
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
@@ -188,6 +226,11 @@
             <input id="token" type="password" placeholder="Enter token" autocomplete="off">
         </div>
 
+        <div class="server">
+            <label for="serverUrl">Server address</label>
+            <input id="serverUrl" type="plain" placeholder="Enter server address" value="http://localhost:8000">
+        </div>
+
         <div class="status" id="status">
             Connecting...
         </div>
@@ -198,6 +241,7 @@
     </div>
     <script>
         const tokenInput = document.getElementById("token");
+        const serverUrlInput = document.getElementById("serverUrl");
 
         // Restore saved token.
         tokenInput.value = localStorage.getItem("token") ?? "";
@@ -211,7 +255,7 @@
             const facts = document.getElementById("facts");
 
             try {
-                const response = await fetch("http://localhost:8000/api", {
+                const response = await fetch(`${serverUrlInput.value}/api`, {
                     headers: {
                         Authorization: `Custom ${tokenInput.value}`,
                     },

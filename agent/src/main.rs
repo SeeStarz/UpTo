@@ -11,6 +11,10 @@ use std::{
 };
 
 fn main() {
+    let admin_token = env::var("ADMIN_TOKEN").unwrap_or(String::from("admin_btw"));
+    let server_address = env::var("SERVER_ADDR").unwrap_or(String::from("http://localhost:8000"));
+    let agent_listener_socket = env::var("AGENT_SOCKET").unwrap_or(String::from("localhost:7000"));
+
     let shutdown_requested = Arc::new(Mutex::new(false));
     {
         let var = shutdown_requested.clone();
@@ -21,7 +25,7 @@ fn main() {
     let (tx, rx) = mpsc::channel();
     {
         let var = shutdown_requested.clone();
-        let _cli_server = thread::spawn(move || cli_handler(tx, var));
+        let _cli_server = thread::spawn(move || cli_handler(tx, var, agent_listener_socket));
     }
 
     let mut facts = HashMap::new();
@@ -32,8 +36,6 @@ fn main() {
             eprintln!("Failed to deserialize cached facts, starting anew");
         }
     }
-
-    let admin_token = env::var("ADMIN_TOKEN").unwrap_or(String::from("admin_btw"));
 
     loop {
         if *shutdown_requested.lock().expect("Failed to acquire lock") {
@@ -75,7 +77,7 @@ fn main() {
 
         let client = reqwest::blocking::Client::new();
         match client
-            .post("http://localhost:8000/api")
+            .post(format!("{}/api", server_address))
             .header(header::AUTHORIZATION, format!("Custom {}", admin_token))
             .json(&snapshot)
             .send()
@@ -96,8 +98,13 @@ fn main() {
     }
 }
 
-fn cli_handler(sender: mpsc::Sender<AgentFactCommand>, shutdown_requested: Arc<Mutex<bool>>) {
-    let listener = TcpListener::bind("localhost:7000").expect("Failed to bind");
+fn cli_handler(
+    sender: mpsc::Sender<AgentFactCommand>,
+    shutdown_requested: Arc<Mutex<bool>>,
+    agent_address: String,
+) {
+    let listener =
+        TcpListener::bind(&agent_address).expect(&format!("Failed to bind {}", agent_address));
     listener
         .set_nonblocking(true)
         .expect("Failed to set listener nonblocking");

@@ -1,6 +1,4 @@
-target
-
-
-# Added by cargo
-
+# Cargo stuffs
 /target
+
+.env-secret
