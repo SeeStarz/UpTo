@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GPT made most of this so don't bother -->
+<!-- GPT made this, don't read too much into it -->
 <html lang="en">
 
 <head>
@@ -19,6 +19,44 @@
 
         * {
             box-sizing: border-box;
+        }
+
+        .auth {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px;
+            margin: 0 0 28px 0;
+        }
+
+        .auth label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--muted);
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .auth input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 1rem;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .auth input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .auth input::placeholder {
+            color: var(--muted);
         }
 
         body {
@@ -145,6 +183,11 @@
             </div>
         </header>
 
+        <div class="auth">
+            <label for="token">Authentication Token</label>
+            <input id="token" type="password" placeholder="Enter token" autocomplete="off">
+        </div>
+
         <div class="status" id="status">
             Connecting...
         </div>
@@ -153,14 +196,33 @@
         </div>
 
     </div>
-
     <script>
+        const tokenInput = document.getElementById("token");
+
+        // Restore saved token.
+        tokenInput.value = localStorage.getItem("token") ?? "";
+
+        tokenInput.addEventListener("input", () => {
+            localStorage.setItem("token", tokenInput.value);
+        });
+
         async function update() {
             const status = document.getElementById("status");
             const facts = document.getElementById("facts");
 
             try {
-                const response = await fetch("http://localhost:8000/api");
+                const response = await fetch("http://localhost:8000/api", {
+                    headers: {
+                        Authorization: `Custom ${tokenInput.value}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    status.textContent = `${response.status} ${response.statusText}`;
+                    facts.innerHTML = "";
+                    return;
+                }
+
                 const snapshot = await response.json();
 
                 status.textContent =
@@ -168,7 +230,7 @@
 
                 facts.innerHTML = "";
 
-                if (!snapshot || snapshot.facts.length === 0) {
+                if (snapshot.facts.length === 0) {
                     facts.innerHTML = `
                 <div class="empty">
                     Nothing happening right now.
@@ -205,8 +267,7 @@
 
                 ${metadata
                             ? `<div class="metadata">${metadata}</div>`
-                            : ""
-                        }
+                            : ""}
             `;
 
                     facts.appendChild(card);
@@ -214,10 +275,10 @@
 
             } catch (e) {
                 status.textContent = "Disconnected";
+                facts.innerHTML = "";
                 console.error(e);
             }
         }
-
 
         function escapeHtml(text) {
             return String(text)
@@ -228,11 +289,9 @@
                 .replaceAll("'", "&#039;");
         }
 
-
         update();
         setInterval(update, 1000);
     </script>
-
 </body>
 
 </html>

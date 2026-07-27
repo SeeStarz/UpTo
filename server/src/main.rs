@@ -1,7 +1,10 @@
 use axum::{
     Json, Router,
     extract::State,
-    http::{HeaderMap, StatusCode},
+    http::{
+        HeaderMap, StatusCode,
+        header::{AUTHORIZATION, CONTENT_TYPE},
+    },
     routing::{get, post},
 };
 use common::Snapshot;
@@ -38,7 +41,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         .route("/api", post(post_api).get(get_api))
-        .layer(CorsLayer::permissive())
+        .layer(CorsLayer::permissive().allow_headers([AUTHORIZATION, CONTENT_TYPE]))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
