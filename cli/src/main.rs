@@ -1,113 +1,125 @@
-use clap::{Args, Parser, Subcommand};
+use crate::parser::export::{
+    Cli, ManualCommand, ManualCommandType, Parser, ProfileCommand, ProfileNewCommand,
+};
 use common::{AgentFactCommand, serialize_wire_json};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs, net::TcpStream, path::Path, println};
+use std::{
+    collections::HashMap,
+    fs,
+    net::TcpStream,
+    path::{Path, PathBuf},
+    println,
+};
 
-#[derive(Parser)]
-#[command(about)]
-struct Cli {
-    #[arg(long, default_value_t = String::from("localhost:7000"))]
-    host: String,
-
-    #[arg(long, short)]
-    profile: Option<String>,
-
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// Begin a new manual fact
-    Begin(Begin),
-    /// End a manual fact
-    End(End),
-    /// End all facts
-    EndAll,
-    /// Profile related commands
-    #[command(subcommand)]
-    Profile(ProfileCommand),
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Subcommand)]
-enum ProfileCommand {
-    /// Create new profile
-    New(ProfileNew),
-    /// Edit existing profile
-    Edit(ProfileEdit),
-    /// Delete existing profile
-    Delete(ProfileDelete),
-    /// List profiles
-    List,
-    /// Show profile details
-    Show(ProfileShow),
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Args)]
-struct Begin {
-    title: String,
-    /// Will be stored in key description in the metadata
-    description: Option<String>,
-    /// Valid json representing string to string hashmap. Will override description if key exists
-    #[arg(long)]
-    json: Option<String>,
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Args)]
-struct End {
-    title: String,
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Args)]
-struct ProfileNew {
-    /// Profile name
-    name: String,
-    /// The agent IP and port to create and connect to
-    agent_host: String,
-    /// The server http(s) address for the agent to talk to
-    server_address: String,
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Args)]
-struct ProfileEdit {
-    /// Profile name
-    name: String,
-    /// The agent IP and port to create and connect to
-    agent_host: Option<String>,
-    /// The server http(s) address for the agent to talk to
-    server_address: Option<String>,
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Args)]
-struct ProfileDelete {
-    /// Profile name
-    name: String,
-}
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Args)]
-struct ProfileShow {
-    /// Profile name
-    name: String,
-}
+mod parser;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 struct Profile {
+    name: String,
     agent_host: String,
     server_address: String,
 }
 
-fn send_command(command: &AgentFactCommand, stream: &mut TcpStream) {
-    serialize_wire_json(stream, command).expect("Failed to send command");
+impl From<ProfileNewCommand> for Profile {
+    fn from(value: ProfileNewCommand) -> Self {
+        Profile {
+            agent_host: value.agent,
+            name: value.name,
+            server_address: value.server,
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+struct Setting {
+    config_dir: PathBuf,
+    state_dir: PathBuf,
+    profile_dir: PathBuf,
+}
+
+impl Default for Setting {
+    fn default() -> Self {
+        let config_dir = dirs::config_dir().unwrap().join("upto");
+        let state_dir = dirs::state_dir().unwrap().join("upto");
+        let profile_dir = config_dir.join("profile");
+        Self {
+            config_dir,
+            state_dir,
+            profile_dir,
+        }
+    }
+}
+
+impl Setting {
+    fn init(&self) {
+        fs::create_dir_all(&self.config_dir).expect("Failed to create config directory");
+        fs::create_dir_all(&self.state_dir).expect("Failed to create state directory");
+        fs::create_dir_all(&self.profile_dir).expect("Failed to create profile directory");
+    }
+}
+
+fn send_command(command: &AgentFactCommand, agent_host: &str) {
+    let mut stream = TcpStream::connect(agent_host).expect("Failed to connect to agent");
+    serialize_wire_json(&mut stream, command).expect("Failed to send command");
 }
 
 fn main() {
     let cli = Cli::parse();
-    let config_base = dirs::config_dir().unwrap().join("upto");
-    let mut stream = TcpStream::connect(cli.host).expect("Failed to connect with agent");
+
+    let setting = Setting::default();
+    setting.init();
 
     {
-        use Commands::*;
-        match cli.command {
+        use Cli::*;
+        match cli {
+            Manual(cmd) => {
+                handle_manual(cmd, &setting);
+            }
+
+            Profile(cmd) => {
+                handle_profile_cmd(cmd, &setting);
+            }
+        };
+    }
+}
+
+fn get_active_profile(setting: &Setting) -> Option<Profile> {
+    let contents = fs::read(setting.state_dir.join("active_profile.json"));
+
+    let Ok(contents) = contents else {
+        return None;
+    };
+
+    let Ok(profile_name) = serde_json::from_slice::<String>(&contents) else {
+        eprintln!("Failed to deserialize active_profile.json");
+        return None;
+    };
+
+    get_profiles(&setting.profile_dir)
+        .get(&profile_name)
+        .cloned()
+}
+
+fn get_profile_final(setting: &Setting, profile_arg: Option<&String>) -> Option<Profile> {
+    let profiles = get_profiles(&setting.profile_dir);
+
+    profile_arg
+        .and_then(|name| profiles.get(name))
+        .map(|p| p.clone())
+        .or(get_active_profile(setting))
+}
+
+fn handle_manual(manual_command: ManualCommand, setting: &Setting) {
+    let profile = get_profile_final(setting, manual_command.args.profile.as_ref());
+    let agent_host = manual_command
+        .args
+        .agent
+        .or(profile.map(|p| p.agent_host))
+        .expect("Failed to deduce agent host. Try configuring a profile");
+
+    {
+        use ManualCommandType::*;
+        match manual_command.command {
             Begin(cmd) => {
                 let mut map = HashMap::new();
 
@@ -126,20 +138,17 @@ fn main() {
                     title: cmd.title,
                     metadata: map,
                 };
-                send_command(&command, &mut stream);
+                send_command(&command, &agent_host);
             }
             End(cmd) => {
                 let command = AgentFactCommand::End { title: cmd.title };
-                send_command(&command, &mut stream);
+                send_command(&command, &agent_host);
             }
             EndAll => {
                 let command = AgentFactCommand::EndAll;
-                send_command(&command, &mut stream);
+                send_command(&command, &agent_host);
             }
-            Profile(cmd) => {
-                handle_profile_cmd(cmd, &config_base);
-            }
-        };
+        }
     }
 }
 
@@ -147,7 +156,11 @@ fn get_profiles(profile_dir: &Path) -> HashMap<String, Profile> {
     let profile_names: Vec<String> = fs::read_dir(&profile_dir)
         .map(|d| {
             d.filter_map(|r| r.ok())
-                .filter_map(|r| r.file_name().to_str().map(|s| s.to_string()))
+                .filter_map(|r| {
+                    r.file_name()
+                        .to_str()
+                        .and_then(|s| s.strip_suffix(".json").map(|s| s.to_string()))
+                })
                 .collect()
         })
         .expect("Failed to list profiles");
@@ -156,45 +169,34 @@ fn get_profiles(profile_dir: &Path) -> HashMap<String, Profile> {
         profile_names
             .iter()
             .flat_map(|name| {
-                let content = fs::read(profile_dir.join(name));
-                if content.is_ok() {
-                    Some((name, content.unwrap()))
-                } else {
-                    None
-                }
+                fs::read(profile_dir.join(format!("{}.json", name)))
+                    .ok()
+                    .map(|c| (name, c))
             })
             .filter_map(|(name, content)| {
-                let data = serde_json::from_slice::<Profile>(&content);
-                if data.is_ok() {
-                    Some((name.clone(), data.unwrap()))
-                } else {
-                    None
-                }
-            }),
+                serde_json::from_slice::<Profile>(&content)
+                    .ok()
+                    .map(|d| (name.clone(), d))
+            })
+            .filter(|(name, profile)| *name == profile.name),
     );
 
     profiles
 }
 
-fn handle_profile_cmd(cmd: ProfileCommand, base_confdir: &Path) {
-    let profile_confdir = base_confdir.join("profile");
-    fs::create_dir_all(&profile_confdir).expect("Failed to create profile directory");
-
+fn handle_profile_cmd(cmd: ProfileCommand, setting: &Setting) {
     use ProfileCommand::*;
     match cmd {
         New(cmd) => {
-            let profile = Profile {
-                agent_host: cmd.agent_host,
-                server_address: cmd.server_address,
-            };
+            let profile = Profile::from(cmd);
             fs::write(
-                &profile_confdir.join(cmd.name),
+                &setting.profile_dir.join(format!("{}.json", &profile.name)),
                 &serde_json::to_vec(&profile).expect("Failed to serialize profile"),
             )
             .expect("Failed to write profile");
         }
         Edit(cmd) => {
-            if let Some(mut profile) = get_profiles(&profile_confdir).remove(&cmd.name) {
+            if let Some(mut profile) = get_profiles(&setting.profile_dir).remove(&cmd.name) {
                 if let Some(agent_host) = cmd.agent_host {
                     profile.agent_host = agent_host;
                 }
@@ -202,7 +204,7 @@ fn handle_profile_cmd(cmd: ProfileCommand, base_confdir: &Path) {
                     profile.server_address = server_address;
                 }
                 fs::write(
-                    &profile_confdir.join(cmd.name),
+                    &setting.profile_dir.join(format!("{}.json", cmd.name)),
                     &serde_json::to_vec(&profile).expect("Failed to serialize profile"),
                 )
                 .expect("Failed to edit profile");
@@ -211,14 +213,15 @@ fn handle_profile_cmd(cmd: ProfileCommand, base_confdir: &Path) {
             }
         }
         Delete(cmd) => {
-            if let Some(_profile) = get_profiles(&profile_confdir).get(&cmd.name) {
-                fs::remove_file(&profile_confdir.join(cmd.name)).expect("Failed to delete file");
+            if let Some(_profile) = get_profiles(&setting.profile_dir).get(&cmd.name) {
+                fs::remove_file(&setting.profile_dir.join(format!("{}.json", cmd.name)))
+                    .expect("Failed to delete file");
             } else {
                 println!("Profile not found");
             }
         }
         List => {
-            let profiles = get_profiles(&profile_confdir);
+            let profiles = get_profiles(&setting.profile_dir);
             if profiles.len() == 0 {
                 println!("No profile found");
             } else {
@@ -229,7 +232,7 @@ fn handle_profile_cmd(cmd: ProfileCommand, base_confdir: &Path) {
             }
         }
         Show(cmd) => {
-            if let Some(profile) = get_profiles(&profile_confdir).get(&cmd.name) {
+            if let Some(profile) = get_profiles(&setting.profile_dir).get(&cmd.name) {
                 println!(
                     "Profile {}:\n{}",
                     cmd.name,
@@ -239,5 +242,10 @@ fn handle_profile_cmd(cmd: ProfileCommand, base_confdir: &Path) {
                 println!("Profile not found");
             }
         }
+        Use(cmd) => fs::write(
+            setting.state_dir.join("active_profile.json"),
+            &serde_json::to_vec(&cmd.name).expect("Failed to serialize profile name"),
+        )
+        .expect("Failed to set default profile"),
     }
 }
