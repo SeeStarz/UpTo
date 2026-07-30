@@ -37,7 +37,9 @@ fn main() {
         }
     }
 
+    let client = reqwest::blocking::Client::new();
     loop {
+        sleep(Duration::from_millis(5000));
         if *shutdown_requested.lock().expect("Failed to acquire lock") {
             break;
         }
@@ -75,7 +77,6 @@ fn main() {
         )
         .expect("Failed to write state file");
 
-        let client = reqwest::blocking::Client::new();
         match client
             .post(format!("{}/api", server_address))
             .header(header::AUTHORIZATION, format!("Custom {}", admin_token))
@@ -94,7 +95,6 @@ fn main() {
                 }
             },
         }
-        sleep(Duration::from_millis(1000));
     }
 }
 
@@ -109,6 +109,7 @@ fn cli_handler(
         .set_nonblocking(true)
         .expect("Failed to set listener nonblocking");
     loop {
+        sleep(Duration::from_millis(100));
         if *shutdown_requested.lock().expect("Failed to acquire lock") {
             break;
         }
@@ -133,7 +134,5 @@ fn cli_handler(
             eprintln!("Failed to send data to channel");
             continue;
         };
-
-        sleep(Duration::from_millis(1000));
     }
 }
