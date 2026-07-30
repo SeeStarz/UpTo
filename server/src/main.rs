@@ -7,13 +7,20 @@ use axum::{
     },
     routing::{get, post},
 };
-use common::Snapshot;
-use std::{env, eprintln, println, sync::Arc};
-use tokio::sync::Mutex;
+use common::{Fact, Snapshot as SnapshotCommon};
+use std::{env, eprintln, println, sync::Arc, time::Duration};
+use tokio::{sync::Mutex, time::Instant};
 use tower_http::cors::CorsLayer;
 
 type AppStateShared = Arc<Mutex<AppState>>;
 
+#[derive(Clone, Debug)]
+struct Snapshot {
+    inner: SnapshotCommon,
+    last_updated: Instant,
+}
+
+#[derive(Clone, Debug)]
 struct AppState {
     snapshot: Option<Snapshot>,
     admin_token: String,
@@ -69,7 +76,7 @@ fn get_token(headers: &HeaderMap) -> Option<String> {
 async fn post_api(
     State(state): State<AppStateShared>,
     headers: HeaderMap,
-    Json(payload): Json<Snapshot>,
+    Json(payload): Json<SnapshotCommon>,
 ) -> Result<(), StatusCode> {
     let Some(token) = get_token(&headers) else {
         return Err(StatusCode::UNAUTHORIZED);
@@ -81,7 +88,11 @@ async fn post_api(
     }
 
     println!("{:?}", payload);
-    state.lock().await.snapshot = Some(payload);
+    let mut unlocked = state.lock().await;
+    unlocked.snapshot = Some(Snapshot {
+        inner: payload,
+        last_updated: Instant::now(),
+    });
     Ok(())
 }
 
@@ -89,19 +100,35 @@ async fn post_api(
 async fn get_api(
     State(state): State<AppStateShared>,
     headers: HeaderMap,
-) -> Result<Json<Snapshot>, StatusCode> {
-    let Some(token) = get_token(&headers) else {
-        return Err(StatusCode::UNAUTHORIZED);
-    };
-
-    if token != state.lock().await.admin_token && token != state.lock().await.user_token {
-        eprintln!("Attempted invalid token: {}", token);
-        return Err(StatusCode::FORBIDDEN);
-    }
+) -> Result<Json<SnapshotCommon>, StatusCode> {
+    let token = get_token(&headers);
 
     let Some(snapshot) = state.lock().await.snapshot.clone() else {
         return Err(StatusCode::NO_CONTENT);
     };
 
+    if Instant::now().duration_since(snapshot.last_updated) > Duration::from_secs(60) {
+        return Err(StatusCode::NO_CONTENT);
+    }
+
+    if let Some(token) = token {
+        if token == state.lock().await.admin_token || token == state.lock().await.user_token {
+            return Ok(Json(snapshot.inner));
+        } else {
+            eprintln!("Attempted invalid token: {}", token);
+        }
+    }
+
+    let filtered: Vec<Fact> = snapshot
+        .inner
+        .facts
+        .into_iter()
+        .filter(|fact| {
+            fact.metadata
+                .get("private")
+                .is_none_or(|value| value != "true")
+        })
+        .collect();
+    let snapshot = SnapshotCommon { facts: filtered };
     Ok(Json(snapshot))
 }

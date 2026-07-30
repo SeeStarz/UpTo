@@ -23,11 +23,10 @@ ssh vps bash << EOF
   cp server/index.html /var/www/upto
   sudo systemctl restart caddy
 
-  pkill server
-
+  pkill server || true
   set -a
   source .env-secret
   set +a
   (target/release/server &>server.log &)
-  echo "Task done"
+  echo "Task Done"
 EOF
