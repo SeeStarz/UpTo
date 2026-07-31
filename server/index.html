@@ -1,341 +1,381 @@
 <!DOCTYPE html>
-<!-- GPT made this, don't read too much into it -->
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Up To</title>
-
-    <style>
-        :root {
-            --bg: #0f1117;
-            --card: #181b23;
-            --card-hover: #202530;
-            --text: #e6e6e6;
-            --muted: #9299a8;
-            --accent: #7dd3fc;
-            --border: #2a2f3a;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        .auth {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 18px;
-            margin: 0 0 28px 0;
-        }
-
-        .auth label {
-            display: block;
-            margin-bottom: 10px;
-            color: var(--muted);
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-        }
-
-        .auth input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.04);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px 14px;
-            font-size: 1rem;
-            transition: border-color 0.15s, background 0.15s;
-        }
-
-        .auth input:focus {
-            outline: none;
-            border-color: var(--accent);
-            background: rgba(255, 255, 255, 0.06);
-        }
-
-        .auth input::placeholder {
-            color: var(--muted);
-        }
-
-        .server {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 18px;
-            margin: 0 0 28px 0;
-        }
-
-        .server label {
-            display: block;
-            margin-bottom: 10px;
-            color: var(--muted);
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-        }
-
-        .server input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.04);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px 14px;
-            font-size: 1rem;
-            transition: border-color 0.15s, background 0.15s;
-        }
-
-        .server input:focus {
-            outline: none;
-            border-color: var(--accent);
-            background: rgba(255, 255, 255, 0.06);
-        }
-
-        .server input::placeholder {
-            color: var(--muted);
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: var(--bg);
-            color: var(--text);
-            font-family:
-                Inter,
-                system-ui,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                sans-serif;
-
-            display: flex;
-            justify-content: center;
-            padding: 40px 20px;
-        }
-
-        .container {
-            width: min(800px, 100%);
-        }
-
-        header {
-            margin-bottom: 30px;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 2.2rem;
-            letter-spacing: -0.03em;
-        }
-
-        .subtitle {
-            color: var(--muted);
-            margin-top: 8px;
-        }
-
-        .status {
-            margin-bottom: 20px;
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-
-        .facts {
-            display: grid;
-            gap: 16px;
-        }
-
-        .fact {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 20px;
-
-            transition:
-                background 0.15s,
-                transform 0.15s;
-        }
-
-        .fact:hover {
-            background: var(--card-hover);
-            transform: translateY(-2px);
-        }
-
-        .fact-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .title {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        .observer {
-            color: var(--accent);
-            font-size: 0.85rem;
-        }
-
-        .metadata {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-        }
-
-        .meta {
-            background: rgba(255, 255, 255, 0.04);
-            padding: 10px 12px;
-            border-radius: 10px;
-        }
-
-        .meta-key {
-            color: var(--muted);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-
-        .meta-value {
-            word-break: break-word;
-        }
-
-        .empty {
-            color: var(--muted);
-            text-align: center;
-            padding: 60px 20px;
-            border: 1px dashed var(--border);
-            border-radius: 16px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UpTo Status Broadcast Viewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
-    <div class="container">
+<body
+  class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white">
+  <div class="max-w-6xl mx-auto px-4 py-8">
 
-        <header>
-            <h1>🟢 Up To</h1>
-            <div class="subtitle">
-                Current activity presence
-            </div>
-        </header>
+    <!-- Top Header Navigation & Host Info -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-6 mb-8 gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span
+            class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600 text-white font-black text-sm tracking-wider">UP</span>
+          <h1 class="text-2xl font-bold tracking-tight text-white">UpTo Status Broadcast Viewer</h1>
+        </div>
+        <p class="text-sm text-slate-400 mt-1">View what I'm up to in real time :D</p>
+      </div>
+    </header>
 
-        <div class="auth">
-            <label for="token">Authentication Token</label>
-            <input id="token" type="password" placeholder="Enter token" autocomplete="off">
+    <!-- Controls Bar & Host Info -->
+    <div class="bg-slate-800/80 rounded-xl p-5 border border-slate-700/80 mb-8 space-y-4 shadow-lg backdrop-blur-sm">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+
+        <!-- Hostname & Endpoint Display -->
+        <div class="md:col-span-6 space-y-1">
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Target Endpoint</label>
+          <div
+            class="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-lg border border-slate-700 font-mono text-xs text-indigo-300 overflow-x-auto">
+            <span class="text-emerald-400 font-bold">GET</span>
+            <span id="endpoint-display"></span>
+          </div>
         </div>
 
-        <div class="server">
-            <label for="serverUrl">Server address</label>
-            <input id="serverUrl" type="plain" placeholder="Enter server address" value="http://localhost:8000">
+        <!-- Inline Token Input Field -->
+        <div class="md:col-span-6 space-y-1">
+          <label for="token-input" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Authorization
+            Token</label>
+          <div class="relative">
+            <input type="password" id="token-input" placeholder="e.g. e4e5Ke2Ke7Ke3Ke6 — Leave blank for Guest"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono">
+          </div>
         </div>
 
-        <div class="status" id="status">
-            Connecting...
+      </div>
+
+      <!-- Status Bar: Poll Status, Timestamp, Role, Staleness TTL -->
+      <div class="pt-3 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-2.5 w-2.5">
+              <span
+                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span class="text-slate-300 font-medium">1Hz Auto-Polling</span>
+          </div>
+
+          <div class="text-slate-400">
+            Last Poll: <span id="poll-timestamp" class="text-slate-200 font-mono">Connecting...</span>
+          </div>
         </div>
 
-        <div class="facts" id="facts">
-        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-slate-400">
+            Role: <span id="role-badge"
+              class="px-2 py-0.5 rounded text-xs font-semibold uppercase font-mono bg-slate-700 text-slate-300">Evaluating...</span>
+          </div>
 
+          <div class="text-slate-400">
+            Staleness Limit: <span id="ttl-badge" class="text-indigo-300 font-mono font-semibold">--s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guest Role Notice -->
+      <div id="guest-notice"
+        class="hidden bg-slate-900/60 border border-indigo-500/30 rounded-lg p-3 text-xs text-indigo-300 flex items-start gap-2.5">
+        <svg class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+          <strong class="font-semibold text-indigo-200">Guest Access Mode:</strong> You are currently unauthenticated.
+          Private facts are hidden. Enter <code
+            class="bg-slate-800 px-1 py-0.5 rounded text-indigo-200 font-mono">u</code> (User) or <code
+            class="bg-slate-800 px-1 py-0.5 rounded text-indigo-200 font-mono">a</code> (Admin) in the Authorization
+          Token field above to view all facts.
+        </div>
+      </div>
     </div>
-    <script>
-        const tokenInput = document.getElementById("token");
-        const serverUrlInput = document.getElementById("serverUrl");
 
-        // Restore saved token.
-        tokenInput.value = localStorage.getItem("token") ?? "";
+    <!-- Error Alert Container for 401 Unauthorized -->
+    <div id="error-container" class="hidden mb-8">
+      <div class="bg-rose-950/60 border border-rose-500/50 rounded-xl p-5 shadow-lg backdrop-blur-sm">
+        <div class="flex items-start gap-3">
+          <div class="p-2 bg-rose-900/50 rounded-lg text-rose-400 shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+              </path>
+            </svg>
+          </div>
+          <div class="space-y-2">
+            <h3 class="text-rose-200 font-semibold text-base flex items-center gap-2">
+              <span id="error-title">HTTP 401 Unauthorized</span>
+            </h3>
+            <p id="error-message"
+              class="text-slate-300 text-sm font-mono bg-rose-950/80 p-2.5 rounded border border-rose-900/80">
+              HTTP 401 Unauthorized: Invalid authorization token
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        tokenInput.addEventListener("input", () => {
-            localStorage.setItem("token", tokenInput.value);
+    <!-- Active Facts Grid / Feed -->
+    <main>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>Active Status Feed</span>
+          <span id="fact-count-badge"
+            class="text-xs bg-slate-800 text-indigo-300 border border-slate-700 px-2 py-0.5 rounded-full font-mono">0
+            facts</span>
+        </h2>
+      </div>
+
+      <div id="facts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Fact cards will be rendered here dynamically -->
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // System Endpoint Formatting Specification
+    let UPTO_HOSTNAME = "{{UPTO_HOSTNAME}}";
+    if (UPTO_HOSTNAME === "{{UPTO_HOSTNAME}}" || !UPTO_HOSTNAME) {
+      // TODO:
+      // UPTO_HOSTNAME = window.location.origin;
+      UPTO_HOSTNAME = "http://127.0.0.1:1234"
+    }
+
+    const endpointUrl = UPTO_HOSTNAME + "/api";
+    document.getElementById("endpoint-display").textContent = endpointUrl;
+
+    const TOKEN_STORAGE_KEY = "upto_token";
+    const tokenInput = document.getElementById("token-input");
+    tokenInput.value = localStorage.getItem(TOKEN_STORAGE_KEY) ?? "";
+
+    const pollTimestampEl = document.getElementById("poll-timestamp");
+    const roleBadgeEl = document.getElementById("role-badge");
+    const ttlBadgeEl = document.getElementById("ttl-badge");
+    const guestNoticeEl = document.getElementById("guest-notice");
+    const errorMessageEl = document.getElementById("error-message");
+    const errorContainerEl = document.getElementById("error-container");
+    const errorTitleEl = document.getElementById("error-title");
+    const factsGridEl = document.getElementById("facts-grid");
+    const factCountBadgeEl = document.getElementById("fact-count-badge");
+
+    let currentStalenessTTL = 60;
+
+    async function fetchFacts() {
+      const token = tokenInput.value.trim();
+      const headers = {};
+
+      if (token) {
+        headers["Authorization"] = "Custom " + token;
+      }
+
+      const now = new Date();
+      pollTimestampEl.textContent = now.toLocaleTimeString();
+
+      try {
+        const response = await fetch(endpointUrl, {
+          method: "GET",
+          headers: headers,
+          cache: "no-store"
         });
 
-        async function update() {
-            const status = document.getElementById("status");
-            const facts = document.getElementById("facts");
-
-            try {
-                const response = await fetch(`${serverUrlInput.value}/api`, {
-                    headers: {
-                        Authorization: `Custom ${tokenInput.value}`,
-                    },
-                });
-
-                if (!response.ok) {
-                    status.textContent = `${response.status} ${response.statusText}`;
-                    facts.innerHTML = "";
-                    return;
-                }
-
-                const snapshot = await response.json();
-
-                status.textContent =
-                    "Last updated " + new Date().toLocaleTimeString();
-
-                facts.innerHTML = "";
-
-                if (snapshot.facts.length === 0) {
-                    facts.innerHTML = `
-                <div class="empty">
-                    Nothing happening right now.
-                </div>
-            `;
-                    return;
-                }
-
-                for (const fact of snapshot.facts) {
-                    const card = document.createElement("div");
-                    card.className = "fact";
-
-                    let metadata = "";
-
-                    for (const [key, value] of Object.entries(fact.metadata)) {
-                        metadata += `
-                    <div class="meta">
-                        <div class="meta-key">${escapeHtml(key)}</div>
-                        <div class="meta-value">${escapeHtml(value)}</div>
-                    </div>
-                `;
-                    }
-
-                    card.innerHTML = `
-                <div class="fact-header">
-                    <div class="title">
-                        ${escapeHtml(fact.observation_title)}
-                    </div>
-
-                    <div class="observer">
-                        ${escapeHtml(fact.observer_name)}
-                    </div>
-                </div>
-
-                ${metadata
-                            ? `<div class="metadata">${metadata}</div>`
-                            : ""}
-            `;
-
-                    facts.appendChild(card);
-                }
-
-            } catch (e) {
-                status.textContent = "Disconnected";
-                facts.innerHTML = "";
-                console.error(e);
-            }
+        if (response.status === 401) {
+          const errData = await response.text();
+          showError("HTTP 401 Unauthorized", errData || "Invalid authorization token");
+          updateRoleBadge("invalid");
+          renderEmptyState("401 Unauthorized Error");
+          return;
         }
 
-        function escapeHtml(text) {
-            return String(text)
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll('"', "&quot;")
-                .replaceAll("'", "&#039;");
+        if (!response.ok) {
+          showError("HTTP Error: " + response.status + " " + response.statusText);
+          updateRoleBadge("error");
+          renderEmptyState("Server Error");
+          return;
         }
 
-        update();
-        setInterval(update, 1000);
-    </script>
+        // Hide error container on success
+        hideError();
+        const data = await response.json();
+
+        currentStalenessTTL = data.staleness_ttl || 60;
+        ttlBadgeEl.textContent = currentStalenessTTL + "s";
+        updateRoleBadge(data.role);
+
+        // Render Facts
+        renderFacts(data.facts || []);
+
+      } catch (err) {
+        console.log(err);
+        showError("Network Error", "Could not connect to " + endpointUrl);
+        updateRoleBadge("offline");
+        renderEmptyState("Network Connection Failed");
+      }
+    }
+
+    function updateRoleBadge(role) {
+      roleBadgeEl.textContent = role;
+
+      // Default classes
+      roleBadgeEl.className = "px-2 py-0.5 rounded text-xs font-semibold uppercase font-mono ";
+
+      if (role === "Anonymous") {
+        roleBadgeEl.className += "bg-amber-950/80 text-amber-300 border border-amber-700/60";
+        guestNoticeEl.classList.remove("hidden");
+      } else if (role === "User") {
+        roleBadgeEl.className += "bg-emerald-950/80 text-emerald-300 border border-emerald-700/60";
+        guestNoticeEl.classList.add("hidden");
+      } else if (role === "Admin") {
+        roleBadgeEl.className += "bg-purple-950/80 text-purple-300 border border-purple-700/60";
+        guestNoticeEl.classList.add("hidden");
+      } else {
+        roleBadgeEl.className += "bg-rose-950/80 text-rose-300 border border-rose-700/60";
+        guestNoticeEl.classList.add("hidden");
+      }
+    }
+
+    function showError(title, msg) {
+      errorTitleEl.textContent = title;
+      errorMessageEl.textContent = msg;
+      errorContainerEl.classList.remove("hidden");
+    }
+
+    function hideError() {
+      errorContainerEl.classList.add("hidden");
+    }
+
+    function renderEmptyState(reason) {
+      factCountBadgeEl.textContent = "Offline";
+      factsGridEl.innerHTML = `
+        <div class="col-span-full bg-slate-800/40 border border-slate-700/60 rounded-xl p-8 text-center space-y-3">
+          <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-500 mx-auto flex items-center justify-center">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+          </div>
+          <div class="text-slate-300 font-semibold text-base">No Active Facts Broadcasted</div>
+          <p class="text-xs text-slate-400 max-w-md mx-auto">
+            ${reason ? reason : "There are currently no active facts matching the filters or staleness TTL threshold. All facts may have expired."}
+          </p>
+        </div>
+      `;
+    }
+
+    function renderFacts(facts) {
+      factCountBadgeEl.textContent = facts.length + (facts.length === 1 ? " fact" : " facts");
+
+      if (!facts || facts.length === 0) {
+        renderEmptyState();
+        return;
+      }
+
+      factsGridEl.innerHTML = facts.map(fact => {
+        const isPrivate = fact.privacy === "Private";
+        const ageSeconds = fact.age_seconds;
+        const metadata = fact.metadata;
+        const observerName = fact.observer_name;
+        const observationTitle = fact.observation_title;
+        const agentID = fact.agent_id;
+        const agePct = Math.min(100, Math.round((ageSeconds / currentStalenessTTL) * 100));
+
+        let ageColor = "bg-emerald-500 text-emerald-300";
+        if (agePct > 75) {
+          ageColor = "bg-rose-500 text-rose-300";
+        } else if (agePct > 50) {
+          ageColor = "bg-amber-500 text-amber-300";
+        }
+
+        const metadataTags = metadata ? Object.entries(metadata).map(([k, v]) => `
+          <div class="bg-slate-900 border border-slate-700/80 px-2.5 py-1 rounded-md text-xs font-mono flex items-center gap-1.5">
+            <span class="text-slate-500">${escapeHtml(k)}:</span>
+            <span class="text-slate-200 font-medium">${escapeHtml(v)}</span>
+          </div>
+        `).join("") : "";
+
+        return `
+          <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-600 transition-colors">
+            <div class="space-y-3">
+              <!-- Top Header: Agent & Privacy Badge -->
+              <div class="flex items-start justify-between gap-2 border-b border-slate-700/60 pb-3">
+                <div>
+                  <div class="text-xs font-mono text-slate-400 font-semibold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full ${isPrivate ? 'bg-amber-400' : 'bg-emerald-400'}"></span>
+                    ${escapeHtml(agentID)}
+                  </div>
+                  <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(observerName)}</div>
+                </div>
+
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${isPrivate ? 'bg-amber-950/90 text-amber-300 border border-amber-700/60' : 'bg-emerald-950/90 text-emerald-300 border border-emerald-700/60'
+          }">
+                  ${isPrivate ? 'private' : 'public'}
+                </span>
+              </div>
+
+              <!-- Fact Title -->
+              <h3 class="text-base font-semibold text-white leading-snug">
+                ${escapeHtml(observationTitle)}
+              </h3>
+
+              <!-- Metadata Tags -->
+              ${metadataTags ? `
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                  ${metadataTags}
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Footer: Age Indicator & TTL Bar -->
+            <div class="mt-5 pt-3 border-t border-slate-700/60 space-y-1.5">
+              <div class="flex items-center justify-between text-xs font-mono">
+                <span class="text-slate-400">Fact Age:</span>
+                <span class="font-bold ${ageSeconds > currentStalenessTTL ? 'text-rose-400' : 'text-slate-200'}">
+                  ${ageSeconds}s <span class="text-slate-500 font-normal">/ ${currentStalenessTTL}s limit</span>
+                </span>
+              </div>
+
+              <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                <div class="h-full transition-all duration-300 ${ageColor.split(' ')[0]}" style="width: ${agePct}%"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // 1Hz Polling Loop
+    setInterval(fetchFacts, 1000);
+    // Initial fetch on load
+    fetchFacts();
+
+
+    // Save token + debounce fetch
+    tokenInput.addEventListener("input", () => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, tokenInput.value);
+
+      clearTimeout(debounceTimer);
+      const debounceTimer = setTimeout(fetchFacts, 300);
+    });
+
+    // Press Enter to fetch immediately
+    tokenInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        clearTimeout(debounceTimer);
+        fetchFacts();
+      }
+    });
+  </script>
 </body>
 
 </html>

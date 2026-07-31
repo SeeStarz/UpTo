@@ -1,3 +1,3 @@
-server: target/debug/server
-static: cd server && live-server
-agent: target/debug/agent
+server: watchexec -w server cargo run --bin server
+static: cd server && live-server --port 5050
+agent: watchexec -w agent cargo run --bin agent

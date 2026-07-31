@@ -1,19 +1,20 @@
-use common::{AgentFactCommand, Fact, Snapshot, deserialize_wire_json};
+use common::{AgentFactCommand, Fact, Snapshot};
 use reqwest::header;
 use std::{
     collections::HashMap,
-    env, eprintln, fs, io,
-    net::TcpListener,
-    println,
+    env, eprintln, fs, println,
     sync::{Arc, Mutex, mpsc},
     thread::{self, sleep},
     time::Duration,
 };
+use tiny_http::Response;
 
 fn main() {
     let admin_token = env::var("ADMIN_TOKEN").unwrap_or(String::from("admin_btw"));
-    let server_address = env::var("SERVER_ADDR").unwrap_or(String::from("http://localhost:8000"));
-    let agent_listener_socket = env::var("AGENT_SOCKET").unwrap_or(String::from("localhost:7000"));
+    let server_address = env::var("SERVER_ADDR").unwrap_or(String::from("http://127.0.0.1:8000"));
+    let agent_listener_socket = env::var("AGENT_SOCKET").unwrap_or(String::from("127.0.0.1:7000"));
+
+    println!("Agent listening on {}", agent_listener_socket);
 
     let shutdown_requested = Arc::new(Mutex::new(false));
     {
@@ -25,7 +26,7 @@ fn main() {
     let (tx, rx) = mpsc::channel();
     {
         let var = shutdown_requested.clone();
-        let _cli_server = thread::spawn(move || cli_handler(tx, var, agent_listener_socket));
+        let _cli_server = thread::spawn(move || cli_handler_http(tx, var, agent_listener_socket));
     }
 
     let mut facts = HashMap::new();
@@ -98,40 +99,44 @@ fn main() {
     }
 }
 
-fn cli_handler(
+fn cli_handler_http(
     sender: mpsc::Sender<AgentFactCommand>,
     shutdown_requested: Arc<Mutex<bool>>,
     agent_address: String,
 ) {
-    let listener =
-        TcpListener::bind(&agent_address).expect(&format!("Failed to bind {}", agent_address));
-    listener
-        .set_nonblocking(true)
-        .expect("Failed to set listener nonblocking");
+    let server = tiny_http::Server::http(&agent_address)
+        .expect(&format!("Failed to start HTTP server on {}", agent_address));
+
     loop {
-        sleep(Duration::from_millis(100));
         if *shutdown_requested.lock().expect("Failed to acquire lock") {
             break;
         }
 
-        let mut stream = match listener.accept() {
-            Ok((stream, _addr)) => stream,
-            Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                continue;
-            }
+        let request = match server.recv_timeout(Duration::from_secs(5)) {
+            Ok(request) => request,
             Err(e) => {
                 eprintln!("Failed to accept connection request {:?}", e);
                 continue;
             }
         };
 
-        let Ok(data) = deserialize_wire_json::<AgentFactCommand, _>(&mut stream) else {
+        let Some(mut request) = request else {
+            continue;
+        };
+
+        let reader = request.as_reader();
+        let Ok(command) = serde_json::from_reader::<_, AgentFactCommand>(reader) else {
             eprintln!("Failed to deserialize incoming data");
             continue;
         };
 
-        let Ok(_) = sender.send(data) else {
-            eprintln!("Failed to send data to channel");
+        let Ok(_) = sender.send(command) else {
+            eprintln!("Failed to send command to channel");
+            continue;
+        };
+
+        let Ok(_) = request.respond(Response::empty(200)) else {
+            eprintln!("Failed to send response");
             continue;
         };
     }

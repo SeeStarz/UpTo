@@ -16,7 +16,7 @@ ssh vps bash << EOF
   git reset --hard origin/deploy
   cargo build --release
 
-  sed -i 's|value="http://localhost:8000"|value="https://upto.seestarz.my.id"|' server/index.html
+  sed -i 's|value="http://127.0.0.1:8000"|value="https://upto.seestarz.my.id"|' server/index.html
 
   sudo mkdir -p /var/www/upto
   sudo chown fahri:caddy /var/www/upto

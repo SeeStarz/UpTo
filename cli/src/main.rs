@@ -1,12 +1,11 @@
 use crate::parser::export::{
     Cli, ManualCommand, ManualCommandType, Parser, ProfileCommand, ProfileNewCommand,
 };
-use common::{AgentFactCommand, serialize_wire_json};
+use common::AgentFactCommand;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs,
-    net::TcpStream,
     path::{Path, PathBuf},
     println,
 };
@@ -59,8 +58,15 @@ impl Setting {
 }
 
 fn send_command(command: &AgentFactCommand, agent_host: &str) {
-    let mut stream = TcpStream::connect(agent_host).expect("Failed to connect to agent");
-    serialize_wire_json(&mut stream, command).expect("Failed to send command");
+    let client = reqwest::blocking::Client::new();
+    let response = client
+        .post(agent_host)
+        .json(command)
+        .send()
+        .expect("Failed to send HTTP request");
+    response
+        .error_for_status()
+        .expect("Server sent failure status");
 }
 
 fn main() {
