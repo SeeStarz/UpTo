@@ -88,10 +88,7 @@
         </svg>
         <div>
           <strong class="font-semibold text-indigo-200">Guest Access Mode:</strong> You are currently unauthenticated.
-          Private facts are hidden. Enter <code
-            class="bg-slate-800 px-1 py-0.5 rounded text-indigo-200 font-mono">u</code> (User) or <code
-            class="bg-slate-800 px-1 py-0.5 rounded text-indigo-200 font-mono">a</code> (Admin) in the Authorization
-          Token field above to view all facts.
+          Private facts are hidden.
         </div>
       </div>
     </div>
@@ -138,13 +135,7 @@
   </div>
 
   <script>
-    // System Endpoint Formatting Specification
-    let UPTO_HOSTNAME = "{{UPTO_HOSTNAME}}";
-    if (UPTO_HOSTNAME === "{{UPTO_HOSTNAME}}" || !UPTO_HOSTNAME) {
-      // TODO:
-      // UPTO_HOSTNAME = window.location.origin;
-      UPTO_HOSTNAME = "http://127.0.0.1:1234"
-    }
+    let UPTO_HOSTNAME = window.location.origin;
 
     const endpointUrl = UPTO_HOSTNAME + "/api";
     document.getElementById("endpoint-display").textContent = endpointUrl;
@@ -200,7 +191,13 @@
 
         // Hide error container on success
         hideError();
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        }
+        catch (err) {
+          throw new Error("unwrap failed", { cause: err });
+        }
 
         currentStalenessTTL = data.staleness_ttl || 60;
         ttlBadgeEl.textContent = currentStalenessTTL + "s";
@@ -210,7 +207,7 @@
         renderFacts(data.facts || []);
 
       } catch (err) {
-        console.log(err);
+        console.error(err);
         showError("Network Error", "Could not connect to " + endpointUrl);
         updateRoleBadge("offline");
         renderEmptyState("Network Connection Failed");

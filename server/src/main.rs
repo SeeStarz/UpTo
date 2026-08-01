@@ -164,13 +164,21 @@ async fn get_api(
     };
 
     let Some(snapshot) = state.lock().await.snapshot.clone() else {
-        return Err(StatusCode::NO_CONTENT);
+        return Ok(Json(GetAPIResponse {
+            role,
+            staleness_ttl,
+            facts: Vec::new(),
+        }));
     };
 
     let elapsed_time = Instant::now().duration_since(snapshot.last_updated);
 
     if elapsed_time > Duration::from_secs(staleness_ttl as u64) {
-        return Err(StatusCode::NO_CONTENT);
+        return Ok(Json(GetAPIResponse {
+            role,
+            staleness_ttl,
+            facts: Vec::new(),
+        }));
     }
 
     let facts: Vec<APIFact> = snapshot
